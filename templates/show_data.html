@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Stock Data</title>
+    <style>
+        body { font-family: sans-serif; padding: 20px; }
+        h1 { color: #333; }
+        .button-container { margin-bottom: 20px; }
+        .button { 
+            text-decoration: none; 
+            padding: 10px 15px; 
+            background-color: #007bff; 
+            color: white;
+            border: 1px solid #007bff;
+            border-radius: 5px;
+            margin-right: 10px;
+            font-size: 14px;
+        }
+        .button:hover { background-color: #0056b3; }
+        table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        th { background-color: #f8f9fa; }
+        tr:nth-child(even) { background-color: #f2f2f2; }
+        tr:hover { background-color: #e9ecef; }
+    </style>
+</head>
+<body>
+    <h1>일일 주식 데이터</h1>
+    <div class="button-container">
+        <a href="/?sort=per_asc" class="button">PER 낮은 순</a>
+        <a href="/?sort=pbr_asc" class="button">PBR 낮은 순</a>
+        <a href="/?sort=turnover_desc" class="button">일일회전율 높은 순</a>
+    </div>
+    
+    {{ table_html | safe }}
+
+</body>
+</html>
