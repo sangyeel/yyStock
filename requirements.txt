@@ -1,0 +1,4 @@
+Flask
+pykrx
+pandas
+gunicorn
