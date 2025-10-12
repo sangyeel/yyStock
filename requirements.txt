@@ -1,4 +1,5 @@
 Flask
 pykrx
 pandas
+pkg_resources
 gunicorn
