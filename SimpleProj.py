@@ -44,6 +44,9 @@ def buildBasicStockData():
     combinedDf['종목명'] = combinedDf.index.map(lambda x: stock.get_market_ticker_name(x))
     end_time = time.time()
     print(f"[INFO] 종목명 변환 완료. 소요 시간: {end_time - start_time:.2f}초")
+
+    # PER 또는 PBR이 0이 아닌 데이터만 필터링
+    combinedDf = combinedDf[(combinedDf['PER'] != 0) & (combinedDf['PBR'] != 0)]
     
     combinedDf = combinedDf.sort_values(by='일일회전율', ascending=False)
     return combinedDf

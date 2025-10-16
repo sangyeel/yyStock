@@ -17,8 +17,27 @@
             font-size: 14px;
         }
         .button:hover { background-color: #0056b3; }
-        table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 3px rgba(0,0,0,0.1); }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; }
+        .tables-container {
+            display: flex;
+            flex-direction: row;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .table-wrapper {
+            flex: 1;
+            border: 1px solid #eee;
+            padding: 15px;
+            border-radius: 8px;
+            background-color: #fafafa;
+        }
+        .table-wrapper h2 {
+            font-size: 1.1em;
+            text-align: center;
+            color: #555;
+            margin-top: 0;
+        }
+        table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 3px rgba(0,0,0,0.1); background-color: white; }
+        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9em; }
         th { background-color: #f8f9fa; }
         tr:nth-child(even) { background-color: #f2f2f2; }
         tr:hover { background-color: #e9ecef; }
@@ -32,7 +51,18 @@
         <a href="/?sort=turnover_desc" class="button">일일회전율 높은 순</a>
     </div>
     
-    {{ table_html | safe }}
+    <div class="tables-container">
+        {% for day_info in daily_data %}
+            <div class="table-wrapper">
+                <h2>기준일: {{ day_info.date }}</h2>
+                {% if day_info.data is not none %}
+                    {{ day_info.data.to_html(index=False, classes='table', border=0) | safe }}
+                {% else %}
+                    <p>해당 날짜에 표시할 데이터가 없습니다.</p>
+                {% endif %}
+            </div>
+        {% endfor %}
+    </div>
 
 </body>
 </html>
