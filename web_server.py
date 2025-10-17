@@ -55,6 +55,8 @@ class StockDataCache:
                 combined_df = turnover_df.join(fundamental_df, how='inner')
                 if not ohlcv_df.empty and '등락률' in ohlcv_df.columns:
                     combined_df = combined_df.join(ohlcv_df['등락률'], how='inner')
+
+                combined_df = combined_df[(combined_df['거래량'] != 0) & (combined_df['일일회전율'] != 0)]
                 
                 display_cols = ['종목명', '거래량', '일일회전율', '등락률', '종가', '고가', '저가']
                 existing_cols = [col for col in display_cols if col in combined_df.columns]
@@ -100,6 +102,8 @@ def utility_processor():
 @app.route('/')
 def show_table():
     market = request.args.get('market', default='KOSPI', type=str)
+    sort_by = request.args.get('sort', default='volume_desc', type=str)
+
     all_data, working_days = StockDataCache().get_data()
     data_dict = all_data.get(market, {})
 
@@ -110,7 +114,21 @@ def show_table():
         day_info = {'date': day_formatted}
 
         if df is not None and not df.empty:
-            df_sorted = df.sort_values(by='거래량', ascending=False)
+            if sort_by == 'turnover_desc' and '일일회전율' in df.columns:
+                df_sorted = df.sort_values(by='일일회전율', ascending=False)
+            elif sort_by == 'turnover_asc' and '일일회전율' in df.columns:
+                df_sorted = df.sort_values(by='일일회전율', ascending=True)
+            elif sort_by == 'rate_desc' and '등락률' in df.columns:
+                df_sorted = df.sort_values(by='등락률', ascending=False)
+            elif sort_by == 'rate_asc' and '등락률' in df.columns:
+                df_sorted = df.sort_values(by='등락률', ascending=True)
+            elif sort_by == 'volume_asc' and '거래량' in df.columns:
+                df_sorted = df.sort_values(by='거래량', ascending=True)
+            elif sort_by == 'volume_desc' and '거래량' in df.columns:
+                df_sorted = df.sort_values(by='거래량', ascending=False)
+            else: # 기본 정렬
+                df_sorted = df.sort_values(by='거래량', ascending=False)
+
             columns_to_show = ['종목명', '거래량', '일일회전율', '등락률', '종가']
 
             # Ensure we only select columns that actually exist in the DataFrame
@@ -125,7 +143,7 @@ def show_table():
         
         daily_data.append(day_info)
 
-    return render_template('show_data.html', daily_data=daily_data, current_market=market)
+    return render_template('show_data.html', daily_data=daily_data, current_market=market, current_sort=sort_by)
 
 if __name__ == "__main__":
     StockDataCache()

@@ -3,57 +3,101 @@
 <head>
     <title>Stock Data</title>
     <style>
-        body { font-family: sans-serif; padding: 20px; }
-        h1 { color: #333; }
-        .button-container { margin-bottom: 20px; }
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; background-color: #f4f7f9; color: #333; padding: 20px; }
+        h1 { color: #2c3e50; }
+        .button-container { 
+            margin-bottom: 20px; 
+        }
+        .sort-form {
+        }
+        .sort-select {
+            padding: 10px 15px;
+            font-size: 14px;
+            border-radius: 5px;
+            border: 1px solid #ccc;
+            background-color: white;
+        }
         .button { 
             text-decoration: none; 
             padding: 10px 15px; 
-            background-color: #f0f0f0; 
+            background-color: white; 
             color: #333;
             border: 1px solid #ccc;
             border-radius: 5px;
             margin-right: 10px;
             font-size: 14px;
+            transition: background-color 0.2s ease;
         }
         .button.active {
             background-color: #007bff;
             color: white;
             border-color: #007bff;
         }
-        .button:hover:not(.active) { background-color: #e0e0e0; }
+        .button:hover:not(.active) { background-color: #e9ecef; }
         .tables-container {
             display: flex;
             flex-direction: row;
             justify-content: space-between;
-            gap: 20px;
+            gap: 25px;
         }
         .table-wrapper {
             flex: 1;
-            border: 1px solid #eee;
-            padding: 15px;
-            border-radius: 8px;
-            background-color: #fafafa;
+            border: 1px solid #e0e0e0;
+            padding: 20px;
+            border-radius: 12px;
+            background-color: #ffffff;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.05);
+            overflow: hidden; /* Ensures content respects border-radius */
         }
         .table-wrapper h2 {
-            font-size: 1.1em;
+            font-size: 1.2em;
             text-align: center;
-            color: #555;
+            color: #34495e;
             margin-top: 0;
+            margin-bottom: 20px;
         }
-        table { border-collapse: collapse; width: 100%; box-shadow: 0 2px 3px rgba(0,0,0,0.1); background-color: white; }
-        th, td { border: 1px solid #ddd; padding: 10px; text-align: left; font-size: 0.9em; }
-        th { background-color: #f8f9fa; }
-        tr:nth-child(even) { background-color: #f2f2f2; }
-        tr:hover { background-color: #e9ecef; }
+        table { 
+            border-collapse: collapse; 
+            width: 100%; 
+        }
+        th, td { 
+            padding: 12px 15px; 
+            text-align: left; 
+            font-size: 0.9em; 
+            border-bottom: 1px solid #f0f0f0; /* Lighter row separator */
+        }
+        td {
+            color: #555;
+        }
+        th { 
+            font-weight: 600; /* Bolder header */
+            color: #333;
+            border-bottom: 2px solid #e0e0e0; /* Stronger header separator */
+        }
+        tr:hover { 
+            background-color: #f9f9f9; 
+        }
     </style>
 </head>
 <body>
     <h1>일일 주식 데이터</h1>
 
     <div class="button-container">
-        <a href="/?market=KOSPI" class="button {% if current_market == 'KOSPI' %}active{% endif %}">코스피</a>
-        <a href="/?market=KOSDAQ" class="button {% if current_market == 'KOSDAQ' %}active{% endif %}">코스닥</a>
+        <a href="/?market=KOSPI&sort={{ current_sort }}" class="button {% if current_market == 'KOSPI' %}active{% endif %}">코스피</a>
+        <a href="/?market=KOSDAQ&sort={{ current_sort }}" class="button {% if current_market == 'KOSDAQ' %}active{% endif %}">코스닥</a>
+    </div>
+    <div class="button-container">
+        <form method="get" class="sort-form">
+            <input type="hidden" name="market" value="{{ current_market }}">
+            <select name="sort" onchange="this.form.submit()" class="sort-select">
+                <option value="volume_desc" {% if current_sort == 'volume_desc' %}selected{% endif %}>거래량 높은 순</option>
+                <option value="volume_asc" {% if current_sort == 'volume_asc' %}selected{% endif %}>거래량 낮은 순</option>
+                <option value="turnover_desc" {% if current_sort == 'turnover_desc' %}selected{% endif %}>일일회전율 높은 순</option>
+                <option value="turnover_asc" {% if current_sort == 'turnover_asc' %}selected{% endif %}>일일회전율 낮은 순</option>
+                <option value="rate_desc" {% if current_sort == 'rate_desc' %}selected{% endif %}>등락률 높은 순</option>
+                <option value="rate_asc" {% if current_sort == 'rate_asc' %}selected{% endif %}>등락률 낮은 순</option>
+            </select>
+        </form>
     </div>
 
     <div class="tables-container">
