@@ -9,14 +9,19 @@
         .button { 
             text-decoration: none; 
             padding: 10px 15px; 
-            background-color: #007bff; 
-            color: white;
-            border: 1px solid #007bff;
+            background-color: #f0f0f0; 
+            color: #333;
+            border: 1px solid #ccc;
             border-radius: 5px;
             margin-right: 10px;
             font-size: 14px;
         }
-        .button:hover { background-color: #0056b3; }
+        .button.active {
+            background-color: #007bff;
+            color: white;
+            border-color: #007bff;
+        }
+        .button:hover:not(.active) { background-color: #e0e0e0; }
         .tables-container {
             display: flex;
             flex-direction: row;
@@ -45,18 +50,45 @@
 </head>
 <body>
     <h1>일일 주식 데이터</h1>
+
     <div class="button-container">
-        <a href="/?sort=per_asc" class="button">PER 낮은 순</a>
-        <a href="/?sort=pbr_asc" class="button">PBR 낮은 순</a>
-        <a href="/?sort=turnover_desc" class="button">일일회전율 높은 순</a>
+        <a href="/?market=KOSPI" class="button {% if current_market == 'KOSPI' %}active{% endif %}">코스피</a>
+        <a href="/?market=KOSDAQ" class="button {% if current_market == 'KOSDAQ' %}active{% endif %}">코스닥</a>
     </div>
-    
+
     <div class="tables-container">
         {% for day_info in daily_data %}
             <div class="table-wrapper">
                 <h2>기준일: {{ day_info.date }}</h2>
-                {% if day_info.data is not none %}
-                    {{ day_info.data.to_html(index=False, classes='table', border=0) | safe }}
+                {% if day_info.data %}
+                    <table class="table" border="0">
+                        <thead>
+                            <tr>
+                                {% for header in day_info.headers %}
+                                    <th>{{ header }}</th>
+                                {% endfor %}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in day_info.data %}
+                                <tr style="background-color: {{ get_color_for_rate(row['등락률']) }};">
+                                    {% for header in day_info.headers %}
+                                        {% if header == '등락률' and row[header] is not none %}
+                                            <td style="font-weight: bold;">
+                                                {{ "%.2f"|format(row[header]) }}
+                                            </td>
+                                        {% elif header == '일일회전율' and row[header] is not none %}
+                                            <td>
+                                                {{ "%.1f"|format(row[header]) }}
+                                            </td>
+                                        {% else %}
+                                            <td>{{ row[header] }}</td>
+                                        {% endif %}
+                                    {% endfor %}
+                                </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
                 {% else %}
                     <p>해당 날짜에 표시할 데이터가 없습니다.</p>
                 {% endif %}

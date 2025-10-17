@@ -29,7 +29,7 @@ class StockDataCache:
 
     def _fetch_data(self):
         print("\n[CACHE] 새로운 주식 데이터를 KRX에서 가져옵니다...")
-        self.data = {}
+        self.data = {"KOSPI": {}, "KOSDAQ": {}}
         
         today_str = stock.get_nearest_business_day_in_a_week()
         today_dt = datetime.strptime(today_str, '%Y%m%d')
@@ -38,29 +38,31 @@ class StockDataCache:
 
         all_days_in_range = stock.get_previous_business_days(fromdate=start_str, todate=today_str)
         
-        # 마지막 4일을 선택하고, 순서를 뒤집어 최신순으로 만듭니다. (오늘, 어제, 그제, ...)
         recent_4_days_ts = all_days_in_range[-4:][::-1]
         self.working_days = [ts.strftime('%Y%m%d') for ts in recent_4_days_ts]
 
-        for day in self.working_days:
-            print(f"  - {day} 데이터 가져오는 중...")
-            turnover_df = stock.get_market_cap(day, market="ALL")
-            turnover_df['종목명'] = turnover_df.index.map(lambda x: stock.get_market_ticker_name(x))
-            turnover_df['일일회전율'] = turnover_df.apply(lambda x: (x['거래량'] / x['상장주식수']) * 100 if x['상장주식수'] > 0 else 0, axis=1)
-            
-            fundamental_df = stock.get_market_fundamental(day, market="ALL")
-            
-            combined_df = turnover_df.join(fundamental_df, how='inner')
-
-            combined_df = combined_df[(combined_df['PER'] != 0) & (combined_df['PBR'] != 0)]
-            
-            display_cols = ['종목명', 'PER', 'PBR', '일일회전율', '시가', '고가', '저가']
-            existing_cols = [col for col in display_cols if col in combined_df.columns]
-            
-            self.data[day] = combined_df[existing_cols]
+        for market in ["KOSPI", "KOSDAQ"]:
+            print(f"\n>> {market} 시장 데이터 처리 중...")
+            for day in self.working_days:
+                print(f"  - {day} 데이터 가져오는 중...")
+                turnover_df = stock.get_market_cap(day, market=market)
+                turnover_df['종목명'] = turnover_df.index.map(lambda x: stock.get_market_ticker_name(x))
+                turnover_df['일일회전율'] = turnover_df.apply(lambda x: (x['거래량'] / x['상장주식수']) * 100 if x['상장주식수'] > 0 else 0, axis=1)
+                
+                fundamental_df = stock.get_market_fundamental(day, market=market)
+                ohlcv_df = stock.get_market_ohlcv(day, market=market)
+                
+                combined_df = turnover_df.join(fundamental_df, how='inner')
+                if not ohlcv_df.empty and '등락률' in ohlcv_df.columns:
+                    combined_df = combined_df.join(ohlcv_df['등락률'], how='inner')
+                
+                display_cols = ['종목명', '거래량', '일일회전율', '등락률', '종가', '고가', '저가']
+                existing_cols = [col for col in display_cols if col in combined_df.columns]
+                
+                self.data[market][day] = combined_df[existing_cols]
         
         self.last_updated = time.time()
-        print("[CACHE] 데이터 로딩 완료.")
+        print("\n[CACHE] 데이터 로딩 완료.")
 
     def get_data(self):
         with self.lock:
@@ -74,10 +76,32 @@ class StockDataCache:
 
 app = Flask(__name__)
 
+@app.context_processor
+def utility_processor():
+    def get_color_for_rate(rate):
+        if not isinstance(rate, (int, float)):
+            return '#FFFFFF'  # white
+
+        # Clamp the rate for color calculation
+        clamped_rate = max(-30.0, min(30.0, rate))
+
+        if clamped_rate >= 0:
+            # Interpolate from white to light red
+            green_blue = int(255 - (180 * clamped_rate / 30))  # Ends at 75
+            return f'rgb(255,{green_blue},{green_blue})'
+        else:  # rate < 0
+            # Interpolate from white to light blue
+            clamped_rate = abs(clamped_rate)
+            red_green = int(255 - (180 * clamped_rate / 30))  # Ends at 75
+            return f'rgb({red_green},{red_green},255)'
+    return dict(get_color_for_rate=get_color_for_rate)
+
+
 @app.route('/')
 def show_table():
-    sort_by = request.args.get('sort', default='turnover_desc', type=str)
-    data_dict, working_days = StockDataCache().get_data()
+    market = request.args.get('market', default='KOSPI', type=str)
+    all_data, working_days = StockDataCache().get_data()
+    data_dict = all_data.get(market, {})
 
     daily_data = []
     for day in working_days:
@@ -86,20 +110,22 @@ def show_table():
         day_info = {'date': day_formatted}
 
         if df is not None and not df.empty:
-            if sort_by == 'per_asc' and 'PER' in df.columns:
-                df_sorted = df.sort_values(by='PER')
-            elif sort_by == 'pbr_asc' and 'PBR' in df.columns:
-                df_sorted = df.sort_values(by='PBR')
-            else: # 기본 정렬 및 turnover_desc
-                df_sorted = df.sort_values(by='일일회전율', ascending=False)
+            df_sorted = df.sort_values(by='거래량', ascending=False)
+            columns_to_show = ['종목명', '거래량', '일일회전율', '등락률', '종가']
 
-            day_info['data'] = df_sorted.head(20)
+            # Ensure we only select columns that actually exist in the DataFrame
+            existing_columns_to_show = [col for col in columns_to_show if col in df.columns]
+            df_display = df_sorted[existing_columns_to_show].head(20)
+
+            day_info['headers'] = existing_columns_to_show
+            day_info['data'] = df_display.to_dict('records')
         else:
             day_info['data'] = None
+            day_info['headers'] = []
         
         daily_data.append(day_info)
 
-    return render_template('show_data.html', daily_data=daily_data)
+    return render_template('show_data.html', daily_data=daily_data, current_market=market)
 
 if __name__ == "__main__":
     StockDataCache()
