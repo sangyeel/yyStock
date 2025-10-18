@@ -92,6 +92,7 @@
             <select name="sort" onchange="this.form.submit()" class="sort-select">
                 <option value="volume_desc" {% if current_sort == 'volume_desc' %}selected{% endif %}>거래량 높은 순</option>
                 <option value="volume_asc" {% if current_sort == 'volume_asc' %}selected{% endif %}>거래량 낮은 순</option>
+                <option value="volume_increase_3_days" {% if current_sort == 'volume_increase_3_days' %}selected{% endif %}>3일 연속 거래량 증가</option>
                 <option value="turnover_desc" {% if current_sort == 'turnover_desc' %}selected{% endif %}>일일회전율 높은 순</option>
                 <option value="turnover_asc" {% if current_sort == 'turnover_asc' %}selected{% endif %}>일일회전율 낮은 순</option>
                 <option value="rate_desc" {% if current_sort == 'rate_desc' %}selected{% endif %}>등락률 높은 순</option>
